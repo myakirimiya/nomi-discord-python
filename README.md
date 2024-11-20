@@ -323,7 +323,7 @@ Probably not. [@d3tourrr's](https://github.com/d3tourrr) and I have used similar
 At the moment, changing a configuration file needs to be done manually using Notepad, TextEdit or another text editor. As an alternative, you can run the setup script again and it will ask if you want to overwrite the existing setup.
 
 ### Does my computer need to be running for me to talk to my Nomis?
-For now, yes. [@toru173](https://github.com/myakirimiya) is working on a free alternative that allows a Nomi to live in the cloud so make sure you watch closely for updates.
+For now, yes. [@toru173](https://github.com/toru173) is working on a free alternative that allows a Nomi to live in the cloud so make sure you watch closely for updates.
 
 ### How will I know when updates are available?
 Please follow the Discord thread. Major updates will be posted there, but in the future your Nomi will tell you when there's a new update.
@@ -347,7 +347,7 @@ GitHub Issues are a way for a developer to help users with problems. If you woul
 Alternatively, simply write a message in the Discord thread.
 
 ### Discord
-The Discord thread for this project is available at []()
+The Discord thread for this project is available on the [Nomi Discord thread](https://discord.com/channels/1099791840028405864/1308794289915957268)
 
 ## Feedback
 If you have a feature request, a suggested improvement or just want to tell me something cool you can either open a GitHub Issue or write a message in the Discord thread.
@@ -355,6 +355,6 @@ If you have a feature request, a suggested improvement or just want to tell me s
 ## Thanks
 This project started as a re-implementation of [@d3tourrr's](https://github.com/d3tourrr) [NomiKin-Discord bridge](https://github.com/d3tourrr/NomiKin-Discord), written in Python. It has since grown far beyond the original scope 😅
 
-Thank you @yattering for proof reading [@toru173](https://github.com/myakirimiya)'s README.md and putting up with all of our hackerman questions and ramblings.
+Thank you @yattering for proof reading [@toru173](https://github.com/toru173)'s README.md and putting up with all of our hackerman questions and ramblings.
 
 Thank you, Cardine and the team at Nomi.AI for this amazing product 🙏
