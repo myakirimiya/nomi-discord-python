@@ -1,0 +1,7 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+install -text
+update/update -text
+setup/setup -text
+setup/start_nomi -text

@@ -1,0 +1,369 @@
+: << END_WIN
+@ECHO OFF
+::
+:: ============================================================================
+:: === The LICENSE for this script can be found at the bottom of this file ====
+:: ============================================================================
+::
+:: This is the Windows part of the script.
+
+SETLOCAL ENABLEDELAYEDEXPANSION
+
+ECHO ===========================================================================
+ECHO =============================== Nomi Setup ================================
+ECHO ===========================================================================
+ECHO:
+ECHO This setup utility will create a script that can be used to start running a
+ECHO Nomi in a Docker container. It needs to be run whenever you want to make
+ECHO changes to your Nomi's configuration.
+ECHO:
+ECHO If you ever want to quit the script, simply press CTRL+C together.
+ECHO:
+
+:: Get the absolute path to the 'setup' directory
+FOR %%I IN ("%~dp0") DO SET "SCRIPT_ROOT=%%~fI" & SET "SCRIPT_ROOT=!SCRIPT_ROOT:~0,-1!"
+SET "SETUP_DIR=!SCRIPT_ROOT!\setup"
+
+SET "DOCKER_IMAGE_NAME=nomi-discord-setup"
+
+:: Check if Docker is installed
+docker --version >NUL 2>&1
+IF ERRORLEVEL 1 (
+    ECHO Could not find Docker. Please re-run the installation script.
+    GOTO CLEANUP
+)
+
+:: Check if Docker daemon is running
+docker info >NUL 2>&1
+IF ERRORLEVEL 1 (
+    ECHO Docker is installed but the Docker daemon is not running.
+    ECHO Please start Docker before continuing.
+    GOTO CLEANUP
+)
+
+:: Check if the Docker image exists
+FOR /F "DELIMS=" %%I IN ('docker images -q %DOCKER_IMAGE_NAME% 2^>NUL') DO SET IMAGE_ID=%%I
+IF NOT DEFINED IMAGE_ID (
+    ECHO Setup Docker image ^(%DOCKER_IMAGE_NAME%^) not found. Building Docker image...
+    docker build -t %DOCKER_IMAGE_NAME% "%SETUP_DIR%" >NUL 2>&1
+    IF ERRORLEVEL 1 (
+        ECHO Error when building image: %ERRORLEVEL%
+        GOTO CLEANUP
+    )
+) ELSE (
+    ECHO An existing image for %DOCKER_IMAGE_NAME% exists. Updating Docker image...
+    docker build -t %DOCKER_IMAGE_NAME% "%SETUP_DIR%" >NUL 2>&1
+    IF ERRORLEVEL 1 (
+        ECHO Error when updating image: %ERRORLEVEL%
+        GOTO CLEANUP
+    )
+)
+
+
+:: Create the output folder if it doesn't exist
+IF NOT EXIST "%SETUP_DIR%\output" (
+    MKDIR "%SETUP_DIR%\output"
+)
+
+:: Check if a Docker container already exists and remove it
+docker inspect --type=container %DOCKER_IMAGE_NAME% >NUL 2>&1
+IF NOT ERRORLEVEL 1 (
+    ECHO A Docker container named %DOCKER_IMAGE_NAME% exists. Removing container...
+    docker container rm -f %DOCKER_IMAGE_NAME% >NUL 2>&1
+    IF ERRORLEVEL 1 (
+        ECHO Error when removing container.
+        GOTO CLEANUP
+    )
+)
+
+ECHO Running %DOCKER_IMAGE_NAME% with Docker
+ECHO:
+
+:: Run the Docker image with a mounted volume for output
+docker run -it --name %DOCKER_IMAGE_NAME% -v "%SETUP_DIR%\output:/app/output" -e HOST=%OS% %DOCKER_IMAGE_NAME% 2>NUL
+IF ERRORLEVEL 1 (
+    IF %ERRORLEVEL% EQU 255 (
+        ECHO Setup cancelled.
+        ECHO:
+        GOTO CLEANUP
+    ) ELSE (
+        ECHO Error when running container: %ERRORLEVEL%
+        GOTO CLEANUP
+    )
+)
+
+:: Remove container once we're done to avoid confusion
+docker container rm -f %DOCKER_IMAGE_NAME% >NUL 2>&1
+IF ERRORLEVEL 1 (
+    ECHO Error when removing container.
+    GOTO CLEANUP
+)
+
+:: Create the nomis folder if it doesn't exist
+IF NOT EXIST "!SCRIPT_ROOT!\nomis" (
+    MKDIR "!SCRIPT_ROOT!\nomis"
+)
+
+:: Get the script's name
+FOR %%F IN ("%SETUP_DIR%\output\*.bat") DO SET "OUTPUT_FILE=%%~nxF"
+
+:: Copy to the \nomis directory
+FOR %%F IN ("%SETUP_DIR%\output\*") DO (
+    SET "FILENAME=%%~nxF"
+    SET "DESTINATION=!SCRIPT_ROOT!\nomis\%%~nxF"
+
+    IF EXIST "!DESTINATION!" (
+        SET /P CONFIRM="File !FILENAME! already exists. Overwrite? [y/N]: "
+        IF /I NOT "!CONFIRM!"=="y" (
+            ECHO Skipping !FILENAME!
+        ) ELSE (
+            COPY /Y "%%F" "!DESTINATION!" >NUL
+        )
+    ) ELSE (
+        COPY /Y "%%F" "!DESTINATION!" >NUL
+    )
+)
+ECHO Start script created. You can start your new Nomi by running
+ECHO %OUTPUT_FILE%
+ECHO:
+
+:: All done! Let's exit from the Windows part of the script
+:CLEANUP
+:: Clean up the output folder
+DEL /F /Q "%SETUP_DIR%\output\*" 2>NUL
+:: Force delete the container (if it exists)
+docker container rm -f %DOCKER_IMAGE_NAME% >NUL 2>&1
+ENDLOCAL
+PAUSE
+ECHO You may now close this window
+EXIT /B
+END_WIN
+
+# This is the macOS/Linux part of the script. We have to do
+# The same steps here, but in a way that works for Bash.
+
+# Perform some basic sanity checks, then continue execution
+if [ -z "${BASH_VERSION:-}" ]; then
+    # Attempt to find Bash
+    if command -v bash  > /dev/null 2>&1; then
+        # Re-execute the script with Bash by reading it from stdin if necessary
+        if [ -t 0 ]; then
+            # If the script is not being piped, re-execute the file with bash
+            bash "$0" "$@"
+        else
+            # If the script is being piped (non-interactive), re-execute from stdin
+            bash -s "$@" < /dev/stdin
+            exit $?
+        fi
+    else
+        # Unable to find Bash. Exit with an error
+        echo "Bash is required to run this script." >&2
+        exit 1
+    fi
+fi
+
+# Prompt for and confirm user input
+function prompt_confirm() {
+    read -r -p "$1 [y/N] " RESPONSE </dev/tty
+    case "$RESPONSE" in
+        [yY][eE][sS]|[yY])
+            true
+            ;;
+        *)
+            false
+            ;;
+    esac
+}
+
+# Trap to function when we exit
+trap "cleanup" EXIT INT
+
+# Cleanup function
+function cleanup() {
+    EXIT_CODE=$?
+    # Clean up the output folder
+    rm -f "$SETUP_DIR/output/"*
+    # Force delete the container (if it exists)
+    docker rm -f $DOCKER_IMAGE_NAME  > /dev/null 2>&1
+    exit $EXIT_CODE
+}
+
+function get_script() {
+    local SOURCE_FILE="$1"
+    local DESTINATION_FILE="$2"
+
+    # Check if the source file exists
+    if [[ ! -f "$SOURCE_FILE" ]]; then
+        echo "Error: Source file '$SOURCE_FILE' not found!"
+        return 1
+    fi
+
+    local BASE_FILENAME="$(basename $SOURCE_FILE)"
+
+    # Determine the destination file based on the OS
+    if [[ "$(uname -s)" == "Darwin" ]]; then
+        DESTINATION_FILE="${DESTINATION_FILE}/${BASE_FILENAME}.command"
+    elif [[ "$(uname -s)" == "Linux" ]]; then
+        DESTINATION_FILE="${DESTINATION_FILE}/${BASE_FILENAME}.sh"
+    else
+        echo "Error: Unsupported operating system '$(uname -s)'."
+        return 1
+    fi
+    echo "#!/usr/bin/env bash" > "$DESTINATION_FILE"
+    cat "$SOURCE_FILE" >> "$DESTINATION_FILE"
+    chmod +x "$DESTINATION_FILE"
+}
+
+echo "==========================================================================="
+echo "=============================== Nomi Setup ================================"
+echo "==========================================================================="
+echo
+echo "This setup utility will create a script that can be used to start running a"
+echo "Nomi in a Docker container. It needs to be run whenever you want to make"
+echo "changes to your Nomi's configuration."
+echo
+echo "If you ever want to quit the script, simply press CTRL+C together."
+echo
+
+SCRIPT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SETUP_DIR="$SCRIPT_ROOT/setup"
+DOCKER_IMAGE_NAME="nomi-discord-setup"
+
+# Check if Docker is installed
+if ! command -v docker  > /dev/null 2>&1; then
+    echo "Could not find Docker. Please re-run the installation script."
+    exit 1
+fi
+
+# Check if the Docker daemon is running
+if ! docker info  > /dev/null 2>&1; then
+    echo "Docker is installed but the Docker daemon is not running."
+    echo "Please start Docker before continuing."
+    exit 1
+fi
+
+# Check if the Docker image exists
+if [[ -z "$(docker images -q $DOCKER_IMAGE_NAME 2>/dev/null)" ]]; then
+    echo "Setup Docker image ($DOCKER_IMAGE_NAME) not found. Building Docker image..."
+    docker build -t "$DOCKER_IMAGE_NAME" "$SETUP_DIR"  > /dev/null 2>&1
+    EXIT_CODE=$?
+    if [[ $EXIT_CODE -ne 0 ]]; then
+        echo "Error when building image: $EXIT_CODE"
+        exit 1
+    fi
+else
+    echo "An existing image for $DOCKER_IMAGE_NAME exists. Updating Docker image..."
+    docker build -t "$DOCKER_IMAGE_NAME" "$SETUP_DIR"  > /dev/null 2>&1
+    EXIT_CODE=$?
+    if [[ $EXIT_CODE -ne 0 ]]; then
+        echo "Error when updating image: $EXIT_CODE"
+        exit 1
+    fi
+fi
+
+
+# Create the output folder if it doesn't exist.
+if [[ ! -d "$SETUP_DIR/output" ]]; then
+    mkdir -p "$SETUP_DIR/output"
+fi
+
+if docker inspect --type=container $DOCKER_IMAGE_NAME  > /dev/null 2>&1; then
+    echo "A Docker container named $DOCKER_IMAGE_NAME exists. Removing container..."
+    docker rm -f $DOCKER_IMAGE_NAME  > /dev/null 2>&1
+    EXIT_CODE=$?
+    if [[ $EXIT_CODE -ne 0 ]]; then
+        echo "Error when removing container: $EXIT_CODE"
+        exit 1
+    fi
+fi
+
+echo "Running $DOCKER_IMAGE_NAME with Docker"
+echo
+
+# Run the Docker image with a mounted volume for output files
+docker run -it --name "$DOCKER_IMAGE_NAME" -v "$SETUP_DIR/output:/app/output" -e HOST=$(uname -s) "$DOCKER_IMAGE_NAME" 2> /dev/null
+EXIT_CODE=$?
+if [[ $EXIT_CODE -ne 0 ]]; then
+    if [[ $EXIT_CODE -eq 255 ]]; then
+        echo "Setup cancelled."
+        echo
+        exit 1
+    else
+    echo "Error when running container: $EXIT_CODE"
+        exit 1
+    fi
+fi
+
+# Remove the container once we're done to avoid confusion
+docker rm -f "$DOCKER_IMAGE_NAME"  > /dev/null 2>&1
+EXIT_CODE=$?
+if [[ $EXIT_CODE -ne 0 ]]; then
+    echo "Error when removing container: $EXIT_CODE"
+    exit 1
+fi
+
+# Create the nomis folder if it doesn't exist.
+if [[ ! -d "$SCRIPT_ROOT/nomis" ]]; then
+    mkdir -p "$SCRIPT_ROOT/nomis"
+fi
+
+# Get the script's name
+OUTPUT_FILE=$(find "$SETUP_DIR/output/" -type f ! -name "*.conf" -exec basename {} \; | head -n 1)
+
+for FILE in "$SETUP_DIR/output/"*; do
+    FILENAME=$(basename "$FILE")
+    DESTINATION="$SCRIPT_ROOT/nomis/$FILENAME"
+
+    if [[ -e "$DESTINATION" ]]; then
+        if ! prompt_confirm "File $FILENAME already exists. Overwrite?"; then
+            echo "Skipping $FILENAME"
+            continue
+        fi
+    fi
+    cp "$FILE" "$DESTINATION"
+done
+
+chmod +x "$SCRIPT_ROOT/nomis/$OUTPUT_FILE"
+
+echo "Start script created. You can start your new Nomi by running"
+echo "$OUTPUT_FILE"
+echo
+echo "You may now close this window"
+echo
+
+# All done! Let's exit from the macOS/Linux part of the script
+exit 0
+
+===============================================================================
+================================== LICENSE ====================================
+===============================================================================
+
+LICENSE
+
+Copyright (c) 2024-present toru173 and contributors
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted (subject to the limitations in the disclaimer
+below) provided that the following conditions are met:
+
+* Redistributions of source code must retain the above copyright notice,
+  this list of conditions and the following disclaimer.
+* Redistributions in binary form must reproduce the above copyright notice,
+  this list of conditions and the following disclaimer in the documentation
+  and/or other materials provided with the distribution.
+* Neither the name of the copyright holder nor the names of the contributors
+  may be used to endorse or promote products derived from this software
+  without specific prior written permission.
+
+NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE GRANTED BY
+THIS LICENSE. THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
+CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT
+NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER
+OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
