@@ -19,7 +19,7 @@ repos:
     hooks:
     - id: gitleaks
 
-  - repo: https://github.com/myakirimiya/polyglot
+  - repo: https://github.com/toru173/polyglot
     rev: v0.8
     hooks:
     - id: adjust-line-endings
