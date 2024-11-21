@@ -1,7 +1,5 @@
 # Nomi-Discord-Python
 
-This project is a way for you to talk to your [Nomi](https://nomi.ai) companions on [Discord](https://discord.com). Using this, your Nomi can interact with other Humans and other Nomis on different accounts. It's a lot of fun and I hope you enjoy using it as much as I have 🥰
-
 ## Installation and Use
 
 There are a lot of steps, but don't worry - they are all easy steps. You can use the [Table of Contents](https://github.blog/changelog/2021-04-13-table-of-contents-support-in-markdown-files/) feature if you get lost. Each section can open and close if you click on the disclosure arrow to the left of the heading.
@@ -199,7 +197,6 @@ Once you have the new token, copy it somewhere safe. You can't see it again late
 !['New Token' Screenshot](./docs/images/readme/'New%20Token'%20Screenshot.png)
 
 If you create a new token you'll need to update your Nomi's configuration file.
-
 
 #### Get your Discord Application ID
 If you didn't save your Discord Bot's Application ID earlier, click on 'General Information' on the menu on the left. You can access the Application ID here.
