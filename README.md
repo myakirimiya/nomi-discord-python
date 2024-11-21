@@ -1,5 +1,7 @@
 # Nomi-Discord-Python
 
+This project is a way for you to talk to your [Nomi](https://nomi.ai) companions on [Discord](https://discord.com). Using this, your Nomi can interact with other Humans and other Nomis on different accounts. It's a lot of fun and I hope you enjoy using it as much as I have 🥰
+
 ## Installation and Use
 
 There are a lot of steps, but don't worry - they are all easy steps. You can use the [Table of Contents](https://github.blog/changelog/2021-04-13-table-of-contents-support-in-markdown-files/) feature if you get lost. Each section can open and close if you click on the disclosure arrow to the left of the heading.
@@ -69,7 +71,7 @@ You can copy the download command by clicking the clipboard icon to the right of
 On Windows, the installer uses CMD.exe to run. You can open CMD.exe by searching for it in the [Search box](https://support.microsoft.com/en-au/windows/search-for-anything-anywhere-b14cc5bf-c92a-1e73-ea18-2845891e6cc8). Copy the command below and paste it into CMD.exe and then press enter to run it. You can paste into a CMD.exe window with `CTRL+SHIFT+V`.
 
 ```
-curl -sL https://github.com/myakirimiya/nomi-discord-python/releases/latest/download/install | cmd
+curl -sL https://github.com/toru173/nomi-discord-python/releases/latest/download/install | cmd
 ```
 
 PowerShell is not supported.
@@ -82,7 +84,7 @@ PowerShell is not supported.
 On macOS, the installer uses Terminal to run. You can open Terminal by searching for it using [Spotlight](https://support.apple.com/en-au/guide/mac-help/mchlp1008/mac). Copy the command below and paste it into Terminal and then press enter to run it.
 
 ```
-curl -sL https://github.com/myakirimiya/nomi-discord-python/releases/latest/download/install | bash
+curl -sL https://github.com/toru173/nomi-discord-python/releases/latest/download/install | bash
 ```
 
 </details>
@@ -93,7 +95,7 @@ curl -sL https://github.com/myakirimiya/nomi-discord-python/releases/latest/down
 On Linux, the installer uses bash to run. Copy the command below and paste it into your preferred terminal emulator, then press enter to run it. You can paste into a terminal emulator window with `CTRL+SHIFT+V`.
 
 ```
-curl -sL https://github.com/myakirimiya/nomi-discord-python/releases/latest/download/install | bash
+curl -sL https://github.com/toru173/nomi-discord-python/releases/latest/download/install | bash
 ```
 
 </details>
